@@ -1,7 +1,7 @@
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .models import (
     AddBearerRequest,
@@ -216,6 +216,7 @@ def get_traffic_stats(
     ue_id: int,
     bearer_id: int,
     repo: Annotated[EPCRepository, Depends(get_repo)],
+    unit: str = Query("kbps", pattern="^(bps|kbps|Mbps)$")
 ):
     try:
         state = repo.get_ue(ue_id)
@@ -228,8 +229,8 @@ def get_traffic_stats(
             bearer_id=bearer_id,
             protocol=None,
             target_bps=None,
-            tx_bps=0,
-            rx_bps=0,
+            tx_bps=0.0,
+            rx_bps=0.0,
             duration=0,
         )
     tm = get_traffic_manager(repo)
@@ -237,13 +238,20 @@ def get_traffic_stats(
     duration = (end_ts - stats.start_ts) if (stats.start_ts and end_ts is not None) else 0
     tx_bps = int(stats.bytes_tx * 8 / duration) if duration > 0 else 0
     rx_bps = int(stats.bytes_rx * 8 / duration) if duration > 0 else 0
+    
+    divisor = 1000
+    if unit == "bps":
+        divisor = 1
+    elif unit == "Mbps":
+        divisor = 1_000_000
+        
     return TrafficStatsResponse(
         ue_id=ue_id,
         bearer_id=bearer_id,
         protocol=stats.protocol,
-        target_bps=stats.target_bps,
-        tx_bps=tx_bps,
-        rx_bps=rx_bps,
+        target_bps=stats.target_bps / divisor if stats.target_bps is not None else None,
+        tx_bps=tx_bps / divisor,
+        rx_bps=rx_bps / divisor,
         duration=duration,
     )
 
