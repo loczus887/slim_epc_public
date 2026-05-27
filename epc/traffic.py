@@ -66,6 +66,15 @@ class TrafficGeneratorManager:
             future.cancel()
             del self.tasks[key]
 
+    def stop_all_for_ue(self, ue_id: int) -> list[int]:
+        stopped = []
+        for key in [k for k in list(self.tasks.keys()) if k[0] == ue_id]:
+            self.tasks[key].cancel()
+            del self.tasks[key]
+            stopped.append(key[1])
+        return stopped
+
+
     def is_running(self, ue_id: int, bearer_id: int) -> bool:
         return (ue_id, bearer_id) in self.tasks
 

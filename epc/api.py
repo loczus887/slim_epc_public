@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from .models import (
+    AllTrafficStopResponse,
     AddBearerRequest,
     AggregatedStatsResponse,
     AttachResponse,
@@ -190,6 +191,24 @@ def start_traffic(
         target_bps=target_bps,
     )
 
+@router.delete("/ues/{ue_id}/traffic", response_model=AllTrafficStopResponse)
+def stop_all_ue_traffic(
+    ue_id: int,
+    repo: Annotated[EPCRepository, Depends(get_repo)],
+):
+    try:
+        state = repo.get_ue(ue_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    tm = get_traffic_manager(repo)
+    stopped = tm.stop_all_for_ue(ue_id)
+    for bearer_id in stopped:
+        if bearer_id in state.bearers:
+            state.bearers[bearer_id].active = False
+        state.stats.pop(bearer_id, None)
+    repo.save_ue(state)
+    return AllTrafficStopResponse(status="traffic_stopped", ue_id=ue_id, stopped_bearers=stopped)
+
 
 @router.delete("/ues/{ue_id}/bearers/{bearer_id}/traffic", response_model=TrafficStopResponse)
 def stop_traffic(
@@ -207,7 +226,9 @@ def stop_traffic(
     tm = get_traffic_manager(repo)
     tm.stop(ue_id, bearer_id)
     bearer.active = False
-    repo.update_bearer(ue_id, bearer)
+    state.bearers[bearer_id] = bearer
+    state.stats.pop(bearer_id, None)
+    repo.save_ue(state)
     return TrafficStopResponse(status="traffic_stopped", ue_id=ue_id, bearer_id=bearer_id)
 
 

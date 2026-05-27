@@ -97,6 +97,11 @@ class TrafficStopResponse(StatusResponse):
     bearer_id: int
 
 
+class AllTrafficStopResponse(StatusResponse):
+    ue_id: int
+    stopped_bearers: list[int]
+    
+
 class TrafficStatsResponse(BaseModel):
     ue_id: int
     bearer_id: int
