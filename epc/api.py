@@ -1,7 +1,7 @@
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 from .models import (
     AddBearerRequest,
@@ -126,7 +126,7 @@ def add_bearer(
 @router.delete("/ues/{ue_id}/bearers/{bearer_id}", response_model=BearerDeleteResponse)
 def delete_bearer(
     ue_id: int,
-    bearer_id: int,
+    bearer_id: Annotated[int, Path(ge=1, le=9)],
     repo: Annotated[EPCRepository, Depends(get_repo)],
 ):
     try:
@@ -150,7 +150,7 @@ def delete_bearer(
 @router.post("/ues/{ue_id}/bearers/{bearer_id}/traffic", response_model=TrafficStartResponse)
 def start_traffic(
     ue_id: int,
-    bearer_id: int,
+    bearer_id: Annotated[int, Path(ge=1, le=9)],
     body: StartTrafficRequest,
     repo: Annotated[EPCRepository, Depends(get_repo)],
 ):
@@ -194,7 +194,7 @@ def start_traffic(
 @router.delete("/ues/{ue_id}/bearers/{bearer_id}/traffic", response_model=TrafficStopResponse)
 def stop_traffic(
     ue_id: int,
-    bearer_id: int,
+    bearer_id: Annotated[int, Path(ge=1, le=9)],
     repo: Annotated[EPCRepository, Depends(get_repo)],
 ):
     try:
@@ -214,7 +214,7 @@ def stop_traffic(
 @router.get("/ues/{ue_id}/bearers/{bearer_id}/traffic", response_model=TrafficStatsResponse)
 def get_traffic_stats(
     ue_id: int,
-    bearer_id: int,
+    bearer_id: Annotated[int, Path(ge=1, le=9)],
     repo: Annotated[EPCRepository, Depends(get_repo)],
 ):
     try:
