@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class BearerConfig(BaseModel):
-    bearer_id: int = Field(ge=1, le=9)
+    bearer_id: int = Field(strict=True, ge=1, le=9)
     protocol: str | None = Field(default=None, pattern="^(tcp|udp)$")
     target_bps: int | None = None  # bits per second
     active: bool = False
@@ -20,7 +20,7 @@ class ThroughputStats(BaseModel):
 
 
 class UEState(BaseModel):
-    ue_id: int = Field(ge=0, le=100)
+    ue_id: int = Field(strict=True, ge=0, le=100)
     bearers: dict[int, BearerConfig] = {}
     stats: dict[int, ThroughputStats] = {}
 
@@ -35,11 +35,10 @@ class UEState(BaseModel):
 
 # Request body schemas (REST API)
 class AttachUERequest(BaseModel):
-    ue_id: int = Field(ge=0, le=100)
-
+    ue_id: int = Field(strict=True, ge=0, le=100)
 
 class AddBearerRequest(BaseModel):
-    bearer_id: int = Field(ge=1, le=9)
+    bearer_id: int = Field(strict=True, ge=1, le=9)
 
 
 class StartTrafficRequest(BaseModel):
@@ -101,9 +100,9 @@ class TrafficStatsResponse(BaseModel):
     ue_id: int
     bearer_id: int
     protocol: str | None = None
-    target_bps: int | None = None
-    tx_bps: int
-    rx_bps: int
+    target_bps: float | None = None
+    tx_bps: float
+    rx_bps: float
     duration: float
 
 

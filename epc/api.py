@@ -1,7 +1,7 @@
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from .models import (
     AddBearerRequest,
@@ -216,6 +216,7 @@ def get_traffic_stats(
     ue_id: int,
     bearer_id: Annotated[int, Path(ge=1, le=9)],
     repo: Annotated[EPCRepository, Depends(get_repo)],
+    unit: str = Query("kbps", pattern="^(bps|kbps|Mbps)$")
 ):
     try:
         state = repo.get_ue(ue_id)
@@ -223,19 +224,35 @@ def get_traffic_stats(
         raise HTTPException(status_code=400, detail=str(e))
     stats = state.stats.get(bearer_id)
     if not stats:
+        return TrafficStatsResponse(
+            ue_id=ue_id,
+            bearer_id=bearer_id,
+            protocol=None,
+            target_bps=None,
+            tx_bps=0.0,
+            rx_bps=0.0,
+            duration=0,
+        )
         raise HTTPException(status_code=404, detail="No active traffic for this bearer")
     tm = get_traffic_manager(repo)
     end_ts = time.time() if (stats.start_ts and tm.is_running(ue_id, bearer_id)) else stats.last_update_ts
     duration = (end_ts - stats.start_ts) if (stats.start_ts and end_ts is not None) else 0
     tx_bps = int(stats.bytes_tx * 8 / duration) if duration > 0 else 0
     rx_bps = int(stats.bytes_rx * 8 / duration) if duration > 0 else 0
+    
+    divisor = 1000
+    if unit == "bps":
+        divisor = 1
+    elif unit == "Mbps":
+        divisor = 1_000_000
+        
     return TrafficStatsResponse(
         ue_id=ue_id,
         bearer_id=bearer_id,
         protocol=stats.protocol,
-        target_bps=stats.target_bps,
-        tx_bps=tx_bps,
-        rx_bps=rx_bps,
+        target_bps=stats.target_bps / divisor if stats.target_bps is not None else None,
+        tx_bps=tx_bps / divisor,
+        rx_bps=rx_bps / divisor,
         duration=duration,
     )
 
