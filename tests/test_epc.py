@@ -322,6 +322,11 @@ class TestStartTraffic:
         body = client.get("/ues/1/bearers/9/traffic").json()
         assert body["protocol"] == "tcp"
 
+    def test_start_traffic_above_limit(self, client):
+        attach(client, 1)
+        r = start_traffic(client, 1, 9, protocol="tcp", Mbps=101.0)
+        assert r.status_code == 422
+
 
 # 8. DELETE /ues/{ue_id}/bearers/{bearer_id}/traffic
 

@@ -47,19 +47,27 @@ class StartTrafficRequest(BaseModel):
     kbps: float | None = None
     bps: float | None = None
 
-    @model_validator(mode="after")
-    def exactly_one_throughput(self):
-        provided = [v for v in [self.Mbps, self.kbps, self.bps] if v is not None]
-        if len(provided) != 1:
-            raise ValueError("Provide exactly one throughput value (Mbps, kbps, or bps)")
-        return self
-
     def target_bps(self) -> int:
         if self.Mbps is not None:
             return int(self.Mbps * 1_000_000)
         if self.kbps is not None:
             return int(self.kbps * 1_000)
         return int(self.bps or 0)
+
+    @model_validator(mode="after")
+    def exactly_one_throughput(self):
+        provided = [v for v in [self.Mbps, self.kbps, self.bps] if v is not None]
+        if len(provided) != 1:
+            raise ValueError("Provide exactly one throughput value (Mbps, kbps, or bps)")
+        bps_val = self.target_bps()
+        min_bps = 0
+        max_bps = 100_000_000
+
+        if not (min_bps <= bps_val <= max_bps):
+            raise ValueError("Throughput must be between 0 and 100 Mbps")
+        return self
+
+
 
 
 # Response Schemas
